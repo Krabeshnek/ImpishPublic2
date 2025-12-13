@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Version 0.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="text-white shadow-lg" style="background-color: #842832;">
+        <div class="flex items-center py-6">
+            <img src="./logo.png" alt="Impish" class="h-24 border-0 bg-transparent ml-6">
+            <div class="ml-4">
+                <h1 class="text-3xl font-bold">Version 0.1</h1>
+                <p class="text-red-200 text-sm mt-2">Daniel's audit toolbox</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-6 py-8 max-w-7xl">
+        <!-- Input Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Input Data</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Paste Excel Data</label>
+                <textarea 
+                    id="dataInput" 
+                    rows="12" 
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
+                    placeholder="Paste your Excel data here... (Tab-separated values)"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+                <div class="flex items-center">
+                    <input 
+                        type="checkbox" 
+                        id="hasHeaders" 
+                        checked
+                        class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                    <label for="hasHeaders" class="ml-2 text-sm font-medium text-gray-700">
+                        First row contains headers
+                    </label>
+                </div>
+                
+                <div>
+                    <label for="idColumn" class="block text-sm font-medium text-gray-700 mb-2">
+                        ID Column Index
+                    </label>
+                    <input 
+                        type="number" 
+                        id="idColumn" 
+                        min="1" 
+                        value="1"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        placeholder="e.g., 1 (for column A)">
+                </div>
+                
+                <div>
+                    <label for="amountColumn" class="block text-sm font-medium text-gray-700 mb-2">
+                        Column Index for Amounts
+                    </label>
+                    <input 
+                        type="number" 
+                        id="amountColumn" 
+                        min="1" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        placeholder="e.g., 2 (for column B)">
+                </div>
+                
+                <div>
+                    <label for="sampleSize" class="block text-sm font-medium text-gray-700 mb-2">
+                        Sample Size
+                    </label>
+                    <input 
+                        type="number" 
+                        id="sampleSize" 
+                        min="1" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        placeholder="Number of items">
+                </div>
+                
+                <div>
+                    <label for="min-value-input" class="block text-sm font-medium text-gray-700 mb-2">
+                        Exclude items below (Abs Value)
+                    </label>
+                    <input 
+                        type="number" 
+                        id="min-value-input" 
+                        min="0" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        placeholder="e.g. 5000">
+                </div>
+            </div>
+
+            <!-- Target Testing Section -->
+            <div class="bg-gray-50 rounded-lg border border-gray-300 p-4 mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Target Testing (100% Selection)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="targetValue" class="block text-sm font-medium text-gray-700 mb-2">
+                            Select all items above (Abs Value)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="targetValue" 
+                            min="0" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            placeholder="e.g., 50000">
+                    </div>
+                    <div>
+                        <label for="targetIds" class="block text-sm font-medium text-gray-700 mb-2">
+                            Select specific IDs (comma separated)
+                        </label>
+                        <input 
+                            type="text" 
+                            id="targetIds" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            placeholder="e.g., INV-1001, INV-1005">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button 
+                    id="randomSampleBtn"
+                    class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors shadow-sm">
+                    Random Sample
+                </button>
+                <button 
+                    id="musSampleBtn"
+                    class="flex-1 bg-red-800 hover:bg-red-900 text-white font-semibold px-6 py-3 rounded-lg transition-colors shadow-sm">
+                    Monetary Unit Sample (Weighted)
+                </button>
+            </div>
+        </div>
+
+        <!-- Output Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">Sample Results</h2>
+                <button 
+                    id="copyToExcelBtn"
+                    class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm text-sm">
+                    📋 Copy to Excel
+                </button>
+            </div>
+            
+            <!-- Summary -->
+            <div id="summarySection" class="hidden mb-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+                    <div class="text-sm text-red-700 font-medium mb-1">Target Items Total</div>
+                    <div id="targetItemsTotal" class="text-2xl font-bold text-red-900">0,00 kr</div>
+                </div>
+                <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+                    <div class="text-sm text-red-700 font-medium mb-1">Sampling Population</div>
+                    <div id="samplingPopulationValue" class="text-2xl font-bold text-red-900">0,00 kr</div>
+                </div>
+                <div class="bg-red-100 rounded-lg p-4 border border-red-300">
+                    <div class="text-sm text-red-800 font-medium mb-1">Sampled Items Total</div>
+                    <div id="selectedTotalValue" class="text-2xl font-bold text-red-900">0,00 kr</div>
+                </div>
+                <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+                    <div class="text-sm text-red-700 font-medium mb-1">Population (w/o Excluded)</div>
+                    <div id="populationWithoutExcluded" class="text-2xl font-bold text-red-900">0,00 kr</div>
+                </div>
+                <div class="bg-red-50 rounded-lg p-4 border border-red-200">
+                    <div class="text-sm text-red-700 font-medium mb-1">Total Population</div>
+                    <div id="totalPopulation" class="text-2xl font-bold text-red-900">0,00 kr</div>
+                </div>
+            </div>
+
+            <!-- Target Items Table -->
+            <div id="targetSection" class="hidden mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Target / Key Items (100% Tested)</h3>
+                <div id="targetExclusionMessage" class="mb-4 text-sm text-gray-600 hidden"></div>
+                <div class="overflow-x-auto">
+                    <table id="targetTable" class="min-w-full border-collapse border border-gray-300">
+                        <thead id="targetTableHead">
+                            <!-- Headers will be inserted here -->
+                        </thead>
+                        <tbody id="targetTableBody">
+                            <!-- Rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div id="resultsSection" class="hidden">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Randomly Selected Samples</h3>
+                <div id="exclusionMessage" class="mb-4 text-sm text-gray-600 hidden"></div>
+                <div class="overflow-x-auto">
+                    <table id="resultsTable" class="min-w-full border-collapse border border-gray-300">
+                        <thead id="tableHead">
+                            <!-- Headers will be inserted here -->
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center py-12 text-gray-400">
+                <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <p>No sample generated yet. Paste your data and select a sampling method.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variable to store current results for copying
+        let currentResults = null;
+
+        // Helper function to clean and parse numeric strings
+        function cleanNumber(str) {
+            if (typeof str !== 'string') {
+                str = String(str);
+            }
+            
+            // Remove currency symbols, spaces, and other non-numeric characters except digits, decimal points, and minus signs
+            let cleaned = str
+                .replace(/[^\d.,\-\s]/g, '') // Remove currency symbols and letters
+                .replace(/\s/g, '') // Remove all spaces
+                .replace(/,/g, (match, offset, string) => {
+                    // Smart comma handling: if comma is followed by 3 digits and then end or space, it's a thousands separator
+                    // Otherwise, treat as decimal separator
+                    const afterComma = string.substring(offset + 1);
+                    if (/^\d{3}(\s|$)/.test(afterComma)) {
+                        return ''; // Thousands separator
+                    }
+                    return '.'; // Decimal separator
+                });
+            
+            // Handle multiple decimal points (take the last one)
+            const parts = cleaned.split('.');
+            if (parts.length > 2) {
+                cleaned = parts.slice(0, -1).join('') + '.' + parts[parts.length - 1];
+            }
+            
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+
+        // Parse tab-separated input
+        function parseInput() {
+            const input = document.getElementById('dataInput').value.trim();
+            if (!input) {
+                alert('Please paste your data first.');
+                return null;
+            }
+
+            const lines = input.split(/\r?\n/).filter(line => line.trim() !== '');
+            const hasHeaders = document.getElementById('hasHeaders').checked;
+            
+            const rows = lines.map(line => {
+                // Split by tabs (Excel clipboard format)
+                return line.split('\t').map(cell => cell.trim());
+            });
+
+            return {
+                headers: hasHeaders ? rows[0] : null,
+                data: hasHeaders ? rows.slice(1) : rows
+            };
+        }
+
+        // Validate amount column
+        function validateAmountColumn(parsed, columnIndex) {
+            if (!columnIndex || columnIndex < 1) {
+                alert('Please enter a valid column index (1 or greater).');
+                return false;
+            }
+
+            const colIdx = columnIndex - 1; // Convert to 0-based
+            const firstRow = parsed.data[0];
+            
+            if (!firstRow || colIdx >= firstRow.length) {
+                alert(`Column index ${columnIndex} is out of range. Your data has ${firstRow ? firstRow.length : 0} columns.`);
+                return false;
+            }
+
+            // Check if column contains valid numbers
+            let validCount = 0;
+            for (let i = 0; i < Math.min(10, parsed.data.length); i++) {
+                const value = cleanNumber(parsed.data[i][colIdx]);
+                if (value !== 0 || parsed.data[i][colIdx].trim() === '0') {
+                    validCount++;
+                }
+            }
+
+            if (validCount === 0) {
+                alert(`Column ${columnIndex} does not appear to contain valid numeric values. Please check your column index.`);
+                return false;
+            }
+
+            return true;
+        }
+
+        // Identify and separate target items
+        function identifyTargets(parsed, idColumnIndex, amountColumnIndex, targetValue, targetIds) {
+            const idColIdx = idColumnIndex - 1;
+            const amountColIdx = amountColumnIndex - 1;
+            
+            // Parse target IDs
+            const targetIdSet = new Set();
+            if (targetIds && targetIds.trim()) {
+                targetIds.split(',').forEach(id => {
+                    const trimmedId = id.trim();
+                    if (trimmedId) {
+                        targetIdSet.add(trimmedId);
+                    }
+                });
+            }
+            
+            const targetItems = [];
+            const remainingItems = [];
+            
+            parsed.data.forEach(row => {
+                const id = row[idColIdx] ? String(row[idColIdx]).trim() : '';
+                const amount = Math.abs(cleanNumber(row[amountColIdx]));
+                const isTargetByValue = targetValue && amount >= targetValue;
+                const isTargetById = targetIdSet.has(id);
+                
+                if (isTargetByValue || isTargetById) {
+                    targetItems.push(row);
+                } else {
+                    remainingItems.push(row);
+                }
+            });
+            
+            return {
+                targets: {
+                    headers: parsed.headers,
+                    data: targetItems
+                },
+                remaining: {
+                    headers: parsed.headers,
+                    data: remainingItems
+                },
+                targetCount: targetItems.length
+            };
+        }
+
+        // Filter data based on minimum value threshold
+        function filterByMinimumValue(parsed, columnIndex, minValue) {
+            if (!minValue || minValue <= 0) {
+                return {
+                    filtered: parsed,
+                    excludedCount: 0,
+                    originalCount: parsed.data.length,
+                    minValue: 0,
+                    originalParsed: parsed,
+                    excludedData: {
+                        headers: parsed.headers,
+                        data: []
+                    }
+                };
+            }
+
+            const colIdx = columnIndex - 1;
+            const originalCount = parsed.data.length;
+            const filteredData = [];
+            const excludedData = [];
+            
+            parsed.data.forEach(row => {
+                const amount = Math.abs(cleanNumber(row[colIdx]));
+                if (amount >= minValue) {
+                    filteredData.push(row);
+                } else {
+                    excludedData.push(row);
+                }
+            });
+
+            return {
+                filtered: {
+                    headers: parsed.headers,
+                    data: filteredData
+                },
+                excludedData: {
+                    headers: parsed.headers,
+                    data: excludedData
+                },
+                excludedCount: originalCount - filteredData.length,
+                originalCount: originalCount,
+                minValue: minValue,
+                originalParsed: parsed
+            };
+        }
+
+        // Random Sample (no duplicates)
+        function generateRandomSample() {
+            const parsed = parseInput();
+            if (!parsed) return;
+
+            const idColumnIndex = parseInt(document.getElementById('idColumn').value) || 1;
+            const columnIndex = parseInt(document.getElementById('amountColumn').value);
+            const sampleSize = parseInt(document.getElementById('sampleSize').value);
+            const minValue = parseFloat(document.getElementById('min-value-input').value) || 0;
+            const targetValue = parseFloat(document.getElementById('targetValue').value) || 0;
+            const targetIds = document.getElementById('targetIds').value || '';
+
+            if (!columnIndex || !sampleSize) {
+                alert('Please enter both Column Index and Sample Size.');
+                return;
+            }
+
+            if (!validateAmountColumn(parsed, columnIndex)) return;
+
+            // Step 1: Identify and separate target items
+            const targetResult = identifyTargets(parsed, idColumnIndex, columnIndex, targetValue, targetIds);
+            const targetItems = targetResult.targets;
+            const remainingParsed = targetResult.remaining;
+
+            // Step 2: Filter remaining items by minimum value
+            const filterResult = filterByMinimumValue(remainingParsed, columnIndex, minValue);
+            const filteredParsed = filterResult.filtered;
+            filterResult.originalParsed = parsed; // Store original for display
+
+            if (filteredParsed.data.length === 0) {
+                alert('No items remain after applying target selection and minimum value filter.');
+                return;
+            }
+
+            if (sampleSize > filteredParsed.data.length) {
+                alert(`Sample size (${sampleSize}) cannot be greater than filtered population size (${filteredParsed.data.length}).`);
+                return;
+            }
+
+            // Step 3: Sample from remaining filtered items
+            // Fisher-Yates shuffle for random selection
+            const indices = Array.from({ length: filteredParsed.data.length }, (_, i) => i);
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+
+            const selectedIndices = indices.slice(0, sampleSize).sort((a, b) => a - b);
+            const selectedRows = selectedIndices.map(idx => filteredParsed.data[idx]);
+
+            displayResults(filteredParsed, selectedRows, columnIndex, 'Random Sample', filterResult, targetItems, idColumnIndex);
+        }
+
+        // Monetary Unit Sampling (Weighted by amount)
+        function generateMUSSample() {
+            const parsed = parseInput();
+            if (!parsed) return;
+
+            const idColumnIndex = parseInt(document.getElementById('idColumn').value) || 1;
+            const columnIndex = parseInt(document.getElementById('amountColumn').value);
+            const sampleSize = parseInt(document.getElementById('sampleSize').value);
+            const minValue = parseFloat(document.getElementById('min-value-input').value) || 0;
+            const targetValue = parseFloat(document.getElementById('targetValue').value) || 0;
+            const targetIds = document.getElementById('targetIds').value || '';
+
+            if (!columnIndex || !sampleSize) {
+                alert('Please enter both Column Index and Sample Size.');
+                return;
+            }
+
+            if (!validateAmountColumn(parsed, columnIndex)) return;
+
+            // Step 1: Identify and separate target items
+            const targetResult = identifyTargets(parsed, idColumnIndex, columnIndex, targetValue, targetIds);
+            const targetItems = targetResult.targets;
+            const remainingParsed = targetResult.remaining;
+
+            // Step 2: Filter remaining items by minimum value
+            const filterResult = filterByMinimumValue(remainingParsed, columnIndex, minValue);
+            const filteredParsed = filterResult.filtered;
+            filterResult.originalParsed = parsed; // Store original for display
+
+            if (filteredParsed.data.length === 0) {
+                alert('No items remain after applying target selection and minimum value filter.');
+                return;
+            }
+
+            const colIdx = columnIndex - 1;
+
+            // Step 3: Sample from remaining filtered items
+            // Calculate amounts and create cumulative distribution
+            const items = filteredParsed.data.map((row, index) => {
+                const amount = Math.abs(cleanNumber(row[colIdx])); // Use absolute value
+                return {
+                    index: index,
+                    row: row,
+                    amount: amount
+                };
+            });
+
+            // Filter out zero or negative amounts
+            const validItems = items.filter(item => item.amount > 0);
+
+            if (validItems.length === 0) {
+                alert('No items with positive amounts found in the specified column.');
+                return;
+            }
+
+            // Calculate total value
+            const totalValue = validItems.reduce((sum, item) => sum + item.amount, 0);
+
+            // Create cumulative distribution for MUS
+            const cumulative = [];
+            let cumSum = 0;
+            validItems.forEach(item => {
+                cumSum += item.amount;
+                cumulative.push({
+                    item: item,
+                    cumulative: cumSum
+                });
+            });
+
+            // Sample with replacement (each dollar has equal chance)
+            const selectedIndicesSet = new Set();
+            const maxSamples = Math.min(sampleSize * 10, validItems.length * 2); // Prevent infinite loops
+
+            for (let i = 0; i < maxSamples && selectedIndicesSet.size < sampleSize; i++) {
+                // Generate random number between 0 and totalValue
+                const random = Math.random() * totalValue;
+                
+                // Find which item this random value corresponds to
+                for (let j = 0; j < cumulative.length; j++) {
+                    if (random <= cumulative[j].cumulative) {
+                        selectedIndicesSet.add(cumulative[j].item.index);
+                        break;
+                    }
+                }
+            }
+
+            // If we didn't get enough unique samples, fill with remaining items
+            if (selectedIndicesSet.size < sampleSize) {
+                const remainingIndices = validItems
+                    .map((item, idx) => item.index)
+                    .filter(idx => !selectedIndicesSet.has(idx));
+                
+                const needed = sampleSize - selectedIndicesSet.size;
+                const additional = remainingIndices.slice(0, needed);
+                additional.forEach(idx => selectedIndicesSet.add(idx));
+            }
+
+            // Convert to sorted array and get rows
+            const selectedIndices = Array.from(selectedIndicesSet).sort((a, b) => a - b);
+            const selectedRows = selectedIndices.map(idx => filteredParsed.data[idx]);
+
+            displayResults(filteredParsed, selectedRows, columnIndex, 'Monetary Unit Sample (Weighted)', filterResult, targetItems, idColumnIndex);
+        }
+
+        // Display target items table
+        function displayTargetTable(targetItems, columnIndex, idColumnIndex) {
+            const colIdx = columnIndex - 1;
+            const idColIdx = idColumnIndex - 1;
+
+            const targetTableHead = document.getElementById('targetTableHead');
+            const targetTableBody = document.getElementById('targetTableBody');
+
+            targetTableHead.innerHTML = '';
+            targetTableBody.innerHTML = '';
+
+            // Create header row
+            const headerRow = document.createElement('tr');
+            headerRow.className = 'bg-gray-100';
+            
+            const headers = targetItems.headers || targetItems.data[0].map((_, idx) => `Column ${idx + 1}`);
+            headers.forEach((header, idx) => {
+                const th = document.createElement('th');
+                th.className = 'px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase border border-gray-300';
+                th.textContent = header;
+                if (idx === colIdx) {
+                    th.className += ' bg-red-100';
+                    th.textContent += ' (Amount)';
+                }
+                if (idx === idColIdx) {
+                    th.className += ' bg-blue-100';
+                    th.textContent += ' (ID)';
+                }
+                headerRow.appendChild(th);
+            });
+            targetTableHead.appendChild(headerRow);
+
+            // Create data rows
+            targetItems.data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 bg-yellow-50';
+                
+                row.forEach((cell, idx) => {
+                    const td = document.createElement('td');
+                    td.className = 'px-4 py-2 text-sm text-gray-700 border border-gray-300';
+                    
+                    if (idx === colIdx) {
+                        const amount = cleanNumber(cell);
+                        td.textContent = formatCurrency(amount);
+                        td.className += ' font-semibold text-red-900 bg-red-50';
+                    } else if (idx === idColIdx) {
+                        td.textContent = cell;
+                        td.className += ' font-semibold text-blue-900 bg-blue-50';
+                    } else {
+                        td.textContent = cell;
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                
+                targetTableBody.appendChild(tr);
+            });
+        }
+
+        // Display results
+        function displayResults(parsed, selectedRows, columnIndex, method, filterResult = null, targetItems = null, idColumnIndex = 1) {
+            const colIdx = columnIndex - 1;
+            const idColIdx = idColumnIndex - 1;
+
+            // Calculate totals - parsed.data is the filtered data (sampling population)
+            const filteredAmounts = parsed.data.map(row => cleanNumber(row[colIdx]));
+            const samplingPopulationValue = filteredAmounts.reduce((sum, val) => sum + Math.abs(val), 0);
+
+            // Calculate target items total
+            let targetItemsTotal = 0;
+            if (targetItems && targetItems.data && targetItems.data.length > 0) {
+                const targetAmounts = targetItems.data.map(row => cleanNumber(row[colIdx]));
+                targetItemsTotal = targetAmounts.reduce((sum, val) => sum + Math.abs(val), 0);
+            }
+
+            // Calculate excluded items total
+            let excludedItemsTotal = 0;
+            if (filterResult && filterResult.excludedData && filterResult.excludedData.data && filterResult.excludedData.data.length > 0) {
+                const excludedAmounts = filterResult.excludedData.data.map(row => cleanNumber(row[colIdx]));
+                excludedItemsTotal = excludedAmounts.reduce((sum, val) => sum + Math.abs(val), 0);
+            }
+
+            const selectedAmounts = selectedRows.map(row => cleanNumber(row[colIdx]));
+            const selectedTotalValue = selectedAmounts.reduce((sum, val) => sum + Math.abs(val), 0);
+
+            // Calculate new summary values
+            const populationWithoutExcluded = targetItemsTotal + samplingPopulationValue;
+            const totalPopulation = targetItemsTotal + samplingPopulationValue + excludedItemsTotal;
+
+            // Update summary
+            document.getElementById('targetItemsTotal').textContent = formatCurrency(targetItemsTotal);
+            document.getElementById('samplingPopulationValue').textContent = formatCurrency(samplingPopulationValue);
+            document.getElementById('selectedTotalValue').textContent = formatCurrency(selectedTotalValue);
+            document.getElementById('populationWithoutExcluded').textContent = formatCurrency(populationWithoutExcluded);
+            document.getElementById('totalPopulation').textContent = formatCurrency(totalPopulation);
+            document.getElementById('summarySection').classList.remove('hidden');
+
+            // Display target items table
+            if (targetItems && targetItems.data && targetItems.data.length > 0) {
+                displayTargetTable(targetItems, columnIndex, idColumnIndex);
+                document.getElementById('targetSection').classList.remove('hidden');
+            } else {
+                document.getElementById('targetSection').classList.add('hidden');
+            }
+
+            // Show exclusion message if items were filtered
+            const exclusionMessage = document.getElementById('exclusionMessage');
+            if (filterResult && filterResult.excludedCount > 0) {
+                exclusionMessage.textContent = `Excluded ${filterResult.excludedCount} items below the threshold of ${formatCurrency(filterResult.minValue)}.`;
+                exclusionMessage.classList.remove('hidden');
+            } else {
+                exclusionMessage.classList.add('hidden');
+            }
+
+            // Build table
+            const tableHead = document.getElementById('tableHead');
+            const tableBody = document.getElementById('tableBody');
+
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            // Create header row
+            const headerRow = document.createElement('tr');
+            headerRow.className = 'bg-gray-100';
+            
+            const headers = parsed.headers || selectedRows[0].map((_, idx) => `Column ${idx + 1}`);
+            headers.forEach((header, idx) => {
+                const th = document.createElement('th');
+                th.className = 'px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase border border-gray-300';
+                th.textContent = header;
+                if (idx === colIdx) {
+                    th.className += ' bg-red-100';
+                    th.textContent += ' (Amount)';
+                }
+                headerRow.appendChild(th);
+            });
+            tableHead.appendChild(headerRow);
+
+            // Create data rows
+            selectedRows.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+                
+                row.forEach((cell, idx) => {
+                    const td = document.createElement('td');
+                    td.className = 'px-4 py-2 text-sm text-gray-700 border border-gray-300';
+                    
+                    if (idx === colIdx) {
+                        const amount = cleanNumber(cell);
+                        td.textContent = formatCurrency(amount);
+                        td.className += ' font-semibold text-red-900 bg-red-50';
+                    } else {
+                        td.textContent = cell;
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                
+                tableBody.appendChild(tr);
+            });
+
+            // Store results for Excel export
+            currentResults = {
+                targetItems: targetItems,
+                sampledItems: {
+                    headers: headers,
+                    rows: selectedRows
+                }
+            };
+
+            // Show results, hide empty state, show copy button
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('copyToExcelBtn').classList.remove('hidden');
+        }
+
+        // Export to Excel using xlsx library
+        function copyToExcel() {
+            if (!currentResults) {
+                alert('No results to export.');
+                return;
+            }
+
+            try {
+                // Create a new workbook
+                const wb = XLSX.utils.book_new();
+
+                // Prepare Target Items sheet
+                if (currentResults.targetItems && currentResults.targetItems.data && currentResults.targetItems.data.length > 0) {
+                    const targetHeaders = currentResults.targetItems.headers || 
+                        (currentResults.targetItems.data[0] ? currentResults.targetItems.data[0].map((_, idx) => `Column ${idx + 1}`) : []);
+                    const targetData = [targetHeaders, ...currentResults.targetItems.data];
+                    const targetWs = XLSX.utils.aoa_to_sheet(targetData);
+                    XLSX.utils.book_append_sheet(wb, targetWs, "Target Items");
+                }
+
+                // Prepare Sampled Items sheet
+                if (currentResults.sampledItems && currentResults.sampledItems.rows && currentResults.sampledItems.rows.length > 0) {
+                    const sampledHeaders = currentResults.sampledItems.headers || 
+                        (currentResults.sampledItems.rows[0] ? currentResults.sampledItems.rows[0].map((_, idx) => `Column ${idx + 1}`) : []);
+                    const sampledData = [sampledHeaders, ...currentResults.sampledItems.rows];
+                    const sampledWs = XLSX.utils.aoa_to_sheet(sampledData);
+                    XLSX.utils.book_append_sheet(wb, sampledWs, "Sampled Items");
+                }
+
+                // Generate filename with timestamp
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const filename = `Audit_Sample_${timestamp}.xlsx`;
+
+                // Write file and trigger download
+                XLSX.writeFile(wb, filename);
+
+                // Show feedback
+                const btn = document.getElementById('copyToExcelBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Exported!';
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+                btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    btn.classList.add('bg-red-600', 'hover:bg-red-700');
+                }, 2000);
+            } catch (err) {
+                alert('Failed to export to Excel. Please check the console for details.');
+                console.error('Export failed:', err);
+            }
+        }
+
+        // Format currency (SEK - Swedish Kronor)
+        function formatCurrency(value) {
+            // Format number with space as thousands separator and comma as decimal separator
+            const formatted = new Intl.NumberFormat('sv-SE', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+            // Add "kr" suffix
+            return formatted + ' kr';
+        }
+
+        // Event listeners
+        document.getElementById('randomSampleBtn').addEventListener('click', generateRandomSample);
+        document.getElementById('musSampleBtn').addEventListener('click', generateMUSSample);
+        document.getElementById('copyToExcelBtn').addEventListener('click', copyToExcel);
+    </script>
+</body>
+</html>
