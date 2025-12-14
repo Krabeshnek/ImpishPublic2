@@ -721,12 +721,19 @@
                 tableBody.appendChild(tr);
             });
 
-            // Store results for Excel export
+            // Store results for Excel export (including summary values)
             currentResults = {
                 targetItems: targetItems,
                 sampledItems: {
                     headers: headers,
                     rows: selectedRows
+                },
+                summary: {
+                    targetItemsTotal: targetItemsTotal,
+                    samplingPopulationValue: samplingPopulationValue,
+                    selectedTotalValue: selectedTotalValue,
+                    populationWithoutExcluded: populationWithoutExcluded,
+                    totalPopulation: totalPopulation
                 }
             };
 
@@ -736,46 +743,144 @@
             document.getElementById('copyToExcelBtn').classList.remove('hidden');
         }
 
-        // Export to Excel using xlsx library
-        function copyToExcel() {
+        // Copy results to clipboard as HTML tables for Excel pasting
+        async function copyToExcel() {
             if (!currentResults) {
-                alert('No results to export.');
+                alert('No results to copy.');
                 return;
             }
 
             try {
-                // Create a new workbook
-                const wb = XLSX.utils.book_new();
+                let htmlContent = '';
+                let plainText = '';
 
-                // Prepare Target Items sheet
+                // Helper to create summary table HTML
+                const createSummaryTableHtml = (summary) => {
+                    if (!summary) return '';
+                    
+                    const values = [
+                        formatCurrency(summary.targetItemsTotal),
+                        formatCurrency(summary.samplingPopulationValue),
+                        formatCurrency(summary.selectedTotalValue),
+                        formatCurrency(summary.populationWithoutExcluded),
+                        formatCurrency(summary.totalPopulation)
+                    ];
+                    
+                    const headers = [
+                        'Target Items Total',
+                        'Sampling Population',
+                        'Sampled Items Total',
+                        'Population (w/o Excluded)',
+                        'Total Population'
+                    ];
+                    
+                    let html = `<h3>Summary</h3><table border="1" style="border-collapse: collapse;"><thead><tr>`;
+                    headers.forEach(h => html += `<th style="background-color: #f3f4f6; padding: 5px;">${h}</th>`);
+                    html += '</tr></thead><tbody><tr>';
+                    values.forEach(v => html += `<td style="padding: 5px;">${v}</td>`);
+                    html += '</tr></tbody></table><br/>';
+                    return html;
+                };
+
+                // Helper to create summary table plain text (TSV)
+                const createSummaryTsv = (summary) => {
+                    if (!summary) return '';
+                    
+                    const headers = [
+                        'Target Items Total',
+                        'Sampling Population',
+                        'Sampled Items Total',
+                        'Population (w/o Excluded)',
+                        'Total Population'
+                    ];
+                    
+                    const values = [
+                        formatCurrency(summary.targetItemsTotal),
+                        formatCurrency(summary.samplingPopulationValue),
+                        formatCurrency(summary.selectedTotalValue),
+                        formatCurrency(summary.populationWithoutExcluded),
+                        formatCurrency(summary.totalPopulation)
+                    ];
+                    
+                    let text = 'Summary\n';
+                    text += headers.join('\t') + '\n';
+                    text += values.join('\t') + '\n\n';
+                    return text;
+                };
+
+                // Helper to create table HTML
+                const createTableHtml = (title, headers, rows) => {
+                    if (!rows || rows.length === 0) return '';
+                    
+                    let html = `<h3>${title}</h3><table border="1" style="border-collapse: collapse;"><thead><tr>`;
+                    headers.forEach(h => html += `<th style="background-color: #f3f4f6; padding: 5px;">${h}</th>`);
+                    html += '</tr></thead><tbody>';
+                    
+                    rows.forEach(row => {
+                        html += '<tr>';
+                        row.forEach(cell => {
+                            // Check if cell is a number for formatting
+                            const num = parseFloat(String(cell).replace(/[^\d.-]/g, ''));
+                            // Basic heuristic: if it looks like a number and matches the cleaned number, treat as number
+                            // But cleaner to just output raw value for Excel to interpret
+                            html += `<td style="padding: 5px;">${cell}</td>`;
+                        });
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table><br/>';
+                    return html;
+                };
+
+                // Helper to create plain text (TSV)
+                const createTsv = (title, headers, rows) => {
+                    if (!rows || rows.length === 0) return '';
+                    
+                    let text = `${title}\n`;
+                    text += headers.join('\t') + '\n';
+                    rows.forEach(row => {
+                        text += row.join('\t') + '\n';
+                    });
+                    text += '\n';
+                    return text;
+                };
+
+                // Add Summary Table at the top
+                if (currentResults.summary) {
+                    htmlContent += createSummaryTableHtml(currentResults.summary);
+                    plainText += createSummaryTsv(currentResults.summary);
+                }
+
+                // Add Target Items
                 if (currentResults.targetItems && currentResults.targetItems.data && currentResults.targetItems.data.length > 0) {
-                    const targetHeaders = currentResults.targetItems.headers || 
+                    const headers = currentResults.targetItems.headers || 
                         (currentResults.targetItems.data[0] ? currentResults.targetItems.data[0].map((_, idx) => `Column ${idx + 1}`) : []);
-                    const targetData = [targetHeaders, ...currentResults.targetItems.data];
-                    const targetWs = XLSX.utils.aoa_to_sheet(targetData);
-                    XLSX.utils.book_append_sheet(wb, targetWs, "Target Items");
+                    
+                    htmlContent += createTableHtml('Target Items', headers, currentResults.targetItems.data);
+                    plainText += createTsv('Target Items', headers, currentResults.targetItems.data);
                 }
 
-                // Prepare Sampled Items sheet
+                // Add Sampled Items
                 if (currentResults.sampledItems && currentResults.sampledItems.rows && currentResults.sampledItems.rows.length > 0) {
-                    const sampledHeaders = currentResults.sampledItems.headers || 
+                    const headers = currentResults.sampledItems.headers || 
                         (currentResults.sampledItems.rows[0] ? currentResults.sampledItems.rows[0].map((_, idx) => `Column ${idx + 1}`) : []);
-                    const sampledData = [sampledHeaders, ...currentResults.sampledItems.rows];
-                    const sampledWs = XLSX.utils.aoa_to_sheet(sampledData);
-                    XLSX.utils.book_append_sheet(wb, sampledWs, "Sampled Items");
+                    
+                    htmlContent += createTableHtml('Sampled Items', headers, currentResults.sampledItems.rows);
+                    plainText += createTsv('Sampled Items', headers, currentResults.sampledItems.rows);
                 }
 
-                // Generate filename with timestamp
-                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-                const filename = `Audit_Sample_${timestamp}.xlsx`;
+                // Create ClipboardItem with both HTML and text formats
+                // Excel prefers HTML for formatting, text/plain as fallback
+                const clipboardItem = new ClipboardItem({
+                    'text/html': new Blob([htmlContent], { type: 'text/html' }),
+                    'text/plain': new Blob([plainText], { type: 'text/plain' })
+                });
 
-                // Write file and trigger download
-                XLSX.writeFile(wb, filename);
+                await navigator.clipboard.write([clipboardItem]);
 
                 // Show feedback
                 const btn = document.getElementById('copyToExcelBtn');
                 const originalText = btn.textContent;
-                btn.textContent = '✓ Exported!';
+                btn.textContent = '✓ Copied!';
                 btn.classList.add('bg-green-600', 'hover:bg-green-700');
                 btn.classList.remove('bg-red-600', 'hover:bg-red-700');
                 
@@ -784,9 +889,10 @@
                     btn.classList.remove('bg-green-600', 'hover:bg-green-700');
                     btn.classList.add('bg-red-600', 'hover:bg-red-700');
                 }, 2000);
+
             } catch (err) {
-                alert('Failed to export to Excel. Please check the console for details.');
-                console.error('Export failed:', err);
+                alert('Failed to copy to clipboard. Please allow clipboard access if prompted.');
+                console.error('Copy failed:', err);
             }
         }
 
