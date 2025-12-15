@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import confetti from 'canvas-confetti';
 
 const WageAnalyzer = () => {
   const [wageAccounts, setWageAccounts] = useState('');
@@ -10,6 +11,7 @@ const WageAnalyzer = () => {
   const [adjustments, setAdjustments] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
   const [showToast, setShowToast] = useState(false);
+  const confettiTriggeredRef = useRef(false);
 
   // Helper function to clean and parse Swedish/European formatted numbers
   const parseNumber = (str) => {
@@ -107,7 +109,7 @@ const WageAnalyzer = () => {
     const absoluteDifference = Math.abs(difference);
     const isMaterial = absoluteDifference > materialityThresholdNum;
     
-    setAnalysisResult({
+    const newResult = {
       totalWagesCY,
       totalSocialCY,
       retireeWages: validatedRetireeWages,
@@ -124,8 +126,28 @@ const WageAnalyzer = () => {
       reducedRate: reducedRateNum,
       hasRetireeWages: validatedRetireeWages > 0,
       validationWarning: retireeWagesNum > totalWagesCY
-    });
+    };
+    
+    setAnalysisResult(newResult);
+    // Reset confetti trigger flag when new analysis is run
+    confettiTriggeredRef.current = false;
   };
+
+  // Trigger confetti when audit result is PASS
+  useEffect(() => {
+    if (analysisResult && !analysisResult.isMaterial && !confettiTriggeredRef.current) {
+      // Subtle confetti effect for PASS result
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ['#10b981', '#059669', '#34d399'], // Green shades
+        gravity: 0.8,
+        ticks: 200
+      });
+      confettiTriggeredRef.current = true;
+    }
+  }, [analysisResult]);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('sv-SE', {
