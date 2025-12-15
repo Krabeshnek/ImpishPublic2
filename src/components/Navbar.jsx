@@ -35,6 +35,16 @@ const Navbar = () => {
           >
             3:12 K10 Calculator
           </Link>
+          <Link
+            to="/wage-analyzer"
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              location.pathname === '/wage-analyzer'
+                ? 'bg-red-800 text-white'
+                : 'text-red-200 hover:bg-red-800 hover:text-white'
+            }`}
+          >
+            Wage Analyzer
+          </Link>
         </nav>
       </div>
     </header>

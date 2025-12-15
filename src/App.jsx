@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import AuditSampler from './components/AuditSampler';
 import ThreeTwelveCalculator from './components/ThreeTwelveCalculator';
+import WageAnalyzer from './components/WageAnalyzer';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Routes>
           <Route path="/" element={<AuditSampler />} />
           <Route path="/k10" element={<ThreeTwelveCalculator />} />
+          <Route path="/wage-analyzer" element={<WageAnalyzer />} />
         </Routes>
       </div>
     </BrowserRouter>
