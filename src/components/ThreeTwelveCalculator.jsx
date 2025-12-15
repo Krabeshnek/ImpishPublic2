@@ -17,6 +17,47 @@ const ThreeTwelveCalculator = () => {
   const SOCIAL_COST_RATE = 0.3142; // 31.42% employer fees
   const CORP_TAX_RATE = 0.206; // 20.6% corporate tax
 
+  // Helper function: Estimates Swedish Net Salary (2025 Rules)
+  const calculateNetSalary = (grossSalary) => {
+    if (!grossSalary) return 0;
+    
+    // 2025 Constants
+    const PBB = 58800; // Prisbasbelopp
+    const MUNICIPAL_TAX = 0.3241; // Average (32.41%)
+    const STATE_TAX_LIMIT = 643100; // Brytpunkt
+    
+    // 1. Grundavdrag (Simplified approximation for owners > 400k)
+    // For incomes > 7.87 PBB (462k), it flattens to ~0.293 PBB
+    let deduction = 17300; 
+    if (grossSalary < 462000) deduction = 30000; // Rough average for lower incomes
+
+    const taxableIncome = Math.max(0, grossSalary - deduction);
+
+    // 2. Base Tax (Municipal)
+    let tax = taxableIncome * MUNICIPAL_TAX;
+
+    // 3. State Tax (20% above threshold)
+    if (grossSalary > STATE_TAX_LIMIT) {
+      tax += (grossSalary - STATE_TAX_LIMIT) * 0.20;
+    }
+
+    // 4. Jobbskatteavdrag (Credit)
+    // 2025 Estimate: Max credit is approx 37,000 kr/year
+    // Simplified logic: High earners get the max credit (no tapering in 2025).
+    let jobbskatteavdrag = 0;
+    if (grossSalary > 40000) { 
+       jobbskatteavdrag = Math.min(grossSalary, 37000); 
+    } else {
+       // Approx linear ramp up for very low salaries
+       jobbskatteavdrag = grossSalary * 0.5; // (Very rough approx for low end)
+    }
+
+    // Final Tax Bill
+    const finalTax = Math.max(0, tax - jobbskatteavdrag);
+    
+    return Math.round(grossSalary - finalTax);
+  };
+
   // Helper function: Calculates the salary that makes Net Cash == Dividend Limit
   // NOW ACCOUNTING FOR OTHER EMPLOYEES
   // Returns 0 if profit is too low to reach equilibrium
@@ -73,6 +114,7 @@ const ThreeTwelveCalculator = () => {
   const [copyButtonText, setCopyButtonText] = useState('📋 Copy to Excel');
   const [copyButtonClass, setCopyButtonClass] = useState('bg-red-600 hover:bg-red-700');
   const [strategy, setStrategy] = useState('CASH'); // 'CASH', 'SGI', or 'SPACE'
+  const [isHoldingCompany, setIsHoldingCompany] = useState(false);
 
   const formatCurrency = (value) => {
     const formatted = new Intl.NumberFormat('sv-SE', {
@@ -82,11 +124,16 @@ const ThreeTwelveCalculator = () => {
     return formatted + ' kr';
   };
 
-  const handleCalculate = () => {
+  const handleCalculate = (overrideOwnerSalary, overrideTotalSalaries) => {
     // Parse inputs
     const ownership = parseFloat(ownershipShare) || 0;
-    const totalSalaries = parseFloat(totalCompanySalaries) || 0;
-    const ownSalary = parseFloat(ownerSalary) || 0;
+    // Use override values if provided, otherwise fall back to state
+    const totalSalaries = overrideTotalSalaries !== undefined 
+      ? (typeof overrideTotalSalaries === 'number' ? overrideTotalSalaries : parseFloat(overrideTotalSalaries) || 0)
+      : (parseFloat(totalCompanySalaries) || 0);
+    const ownSalary = overrideOwnerSalary !== undefined
+      ? (typeof overrideOwnerSalary === 'number' ? overrideOwnerSalary : parseFloat(overrideOwnerSalary) || 0)
+      : (parseFloat(ownerSalary) || 0);
     const acquisition = parseFloat(acquisitionCost) || 0;
     const saved = parseFloat(savedDividendSpace) || 0;
 
@@ -287,6 +334,36 @@ const ThreeTwelveCalculator = () => {
           </div>
         </div>
 
+        {/* Net Salary Estimator */}
+        {ownerSalary && parseFloat(ownerSalary) > 0 && (
+          <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 mb-6">
+            <h4 className="text-lg font-semibold text-blue-800 mb-3">Net Salary Estimator</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm text-gray-600 mb-1">Gross Salary:</div>
+                <div className="text-xl font-bold text-gray-900">{formatCurrency(parseFloat(ownerSalary) || 0)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600 mb-1">Estimated Net Salary (2025):</div>
+                <div className="text-xl font-bold text-blue-900">
+                  {formatCurrency(calculateNetSalary(parseFloat(ownerSalary) || 0))}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {(() => {
+                    const gross = parseFloat(ownerSalary) || 0;
+                    const net = calculateNetSalary(gross);
+                    const effectiveRate = gross > 0 ? ((1 - (net / gross)) * 100).toFixed(1) : '0.0';
+                    return `Approx. ${effectiveRate}% effective tax rate`;
+                  })()}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 mt-3 italic">
+              * This is an estimate based on 2025 Swedish tax rules. Actual net salary may vary based on municipality, deductions, and other factors.
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center gap-4">
           <button
             onClick={handleCalculate}
@@ -369,7 +446,7 @@ const ThreeTwelveCalculator = () => {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  Cash
+                  Minimize Tax
                 </button>
                 <button
                   onClick={() => setStrategy('SGI')}
@@ -379,7 +456,7 @@ const ThreeTwelveCalculator = () => {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  SGI
+                  Secure SGI
                 </button>
                 <button
                   onClick={() => setStrategy('SPACE')}
@@ -389,7 +466,7 @@ const ThreeTwelveCalculator = () => {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  K10 Space
+                  Smart Balance
                 </button>
                 <button
                   onClick={() => setStrategy('EQUILIBRIUM')}
@@ -399,7 +476,7 @@ const ThreeTwelveCalculator = () => {
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  Drain
+                  Max Payout
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-2">
@@ -411,6 +488,21 @@ const ThreeTwelveCalculator = () => {
                   ? 'Maximize K10 Space / 643k'
                   : 'Drain Company / Calculated'}
               </p>
+            </div>
+
+            {/* Holding Company Toggle */}
+            <div className="mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isHoldingCompany}
+                  onChange={(e) => setIsHoldingCompany(e.target.checked)}
+                  className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  I own this via a Holding Company (0% Dividend Tax)
+                </span>
+              </label>
             </div>
 
             {(() => {
@@ -458,6 +550,13 @@ const ThreeTwelveCalculator = () => {
                 const newTotal = Math.max(safeRecommended, currentTotal + difference);
                 
                 setTotalCompanySalaries(newTotal.toString());
+
+                // 4. Auto-calculate after state updates
+                // Pass the new salary numbers directly to avoid race condition with stale state
+                // This ensures the calculator uses the exact numbers we just calculated
+                setTimeout(() => {
+                  handleCalculate(safeRecommended, newTotal);
+                }, 100);
               };
               
               // Logic A: Dead Zone Check (for SGI and SPACE strategies)
@@ -650,7 +749,13 @@ const ThreeTwelveCalculator = () => {
             const costOfSalary = salary * (1 + SOCIAL_COST_RATE);
             const profitAfterSalary = profit - costOfSalary;
             const corporateTax = Math.max(0, profitAfterSalary) * CORP_TAX_RATE;
-            const netAvailableCash = Math.max(0, profitAfterSalary - corporateTax);
+            const netBeforeDividendTax = Math.max(0, profitAfterSalary - corporateTax);
+            
+            // Apply dividend tax based on holding company status
+            // If holding company: 0% tax (multiply by 1.0)
+            // If private owner: 20% tax (multiply by 0.8)
+            const dividendTaxRate = isHoldingCompany ? 0 : 0.20;
+            const netAvailableCash = netBeforeDividendTax * (1 - dividendTaxRate);
             
             // Compare with dividend limit
             const canPayFull = totalGransbelopp ? netAvailableCash >= totalGransbelopp : false;
@@ -673,8 +778,23 @@ const ThreeTwelveCalculator = () => {
                     <span className="font-semibold text-red-600">- {formatCurrency(corporateTax)}</span>
                   </div>
                   
+                  {isHoldingCompany && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span className="text-gray-700">Dividend Tax (0% - Holding Co):</span>
+                      <span className="font-semibold text-green-600">0 kr</span>
+                    </div>
+                  )}
+                  {!isHoldingCompany && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span className="text-gray-700">Dividend Tax (20%):</span>
+                      <span className="font-semibold text-red-600">- {formatCurrency(netBeforeDividendTax * 0.20)}</span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between items-center py-3 pt-3 border-t-2 border-gray-300 mt-2">
-                    <span className="text-lg font-semibold text-gray-800">Net Cash Available for Dividend:</span>
+                    <span className="text-lg font-semibold text-gray-800">
+                      {isHoldingCompany ? 'Tax-Free Dividend to Holding Co:' : 'Net Cash Available for Dividend:'}
+                    </span>
                     <span className="text-lg font-bold text-green-600">{formatCurrency(netAvailableCash)}</span>
                   </div>
                 </div>
@@ -700,10 +820,17 @@ const ThreeTwelveCalculator = () => {
                       canPayFull ? 'text-green-900' : 'text-orange-900'
                     }`}>
                       {canPayFull 
-                        ? 'You have enough cash to take the full low-tax dividend!'
+                        ? (isHoldingCompany 
+                            ? 'You have enough cash to take the full tax-free dividend to your holding company!'
+                            : 'You have enough cash to take the full low-tax dividend!')
                         : (
                           <>
                             You can only payout <strong>{formatCurrency(netAvailableCash)}</strong> of your limit. The rest is saved for next year.
+                            {isHoldingCompany && (
+                              <span className="block mt-1 text-xs italic">
+                                Note: This money goes to your holding company, not your private account.
+                              </span>
+                            )}
                           </>
                         )
                       }
