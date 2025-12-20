@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import AuditSampler from './components/AuditSampler';
 import ThreeTwelveCalculator from './components/ThreeTwelveCalculator';
 import WageAnalyzer from './components/WageAnalyzer';
+import TransactionAggregator from './components/TransactionAggregator';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Route path="/audit-sampler" element={<AuditSampler />} />
           <Route path="/k10" element={<ThreeTwelveCalculator />} />
           <Route path="/wage-analyzer" element={<WageAnalyzer />} />
+          <Route path="/transaction-aggregator" element={<TransactionAggregator />} />
         </Routes>
       </div>
     </BrowserRouter>

@@ -10,7 +10,7 @@ const Navbar = () => {
         <Link to="/" className="flex items-center">
           <img src="/logo.png" alt="Impish" className="h-24 border-0 bg-transparent ml-6" />
           <div className="ml-4">
-            <h1 className="text-3xl font-bold">Version 0.1</h1>
+            <h1 className="text-3xl font-bold">Version 0.2</h1>
             <p className="text-red-200 text-sm mt-2">Daniel's audit toolbox</p>
           </div>
         </Link>
@@ -33,7 +33,7 @@ const Navbar = () => {
                 : 'text-red-200 hover:bg-red-800 hover:text-white'
             }`}
           >
-            3:12 K10 Calculator
+            3:12 Calculator (WIP)
           </Link>
           <Link
             to="/wage-analyzer"
@@ -44,6 +44,16 @@ const Navbar = () => {
             }`}
           >
             Wage Analyzer
+          </Link>
+          <Link
+            to="/transaction-aggregator"
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              location.pathname === '/transaction-aggregator'
+                ? 'bg-red-800 text-white'
+                : 'text-red-200 hover:bg-red-800 hover:text-white'
+            }`}
+          >
+            Aggregator
           </Link>
         </nav>
       </div>

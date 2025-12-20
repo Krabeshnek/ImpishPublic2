@@ -10,7 +10,7 @@ const Dashboard = () => {
       icon: '🔀'
     },
     {
-      title: '3:12 Calculator',
+      title: '3:12 Calculator (WIP)',
       description: 'Calculate K10 dividend space (Gränsbelopp).',
       link: '/k10',
       icon: '💰'
@@ -20,6 +20,12 @@ const Dashboard = () => {
       description: 'Analyze wage accounts vs. booked social fees.',
       link: '/wage-analyzer',
       icon: '👥'
+    },
+    {
+      title: 'Transaction Aggregator',
+      description: 'Merge multiple journal lines into single verification events.',
+      link: '/transaction-aggregator',
+      icon: '🔗'
     }
   ];
 
@@ -39,7 +45,7 @@ const Dashboard = () => {
           </div>
 
           {/* Tool Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {tools.map((tool, index) => (
               <Link
                 key={index}

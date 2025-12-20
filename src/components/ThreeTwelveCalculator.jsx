@@ -199,7 +199,7 @@ const ThreeTwelveCalculator = () => {
         ['20% Tax Amount', formatCurrency(taxAmount)]
       ];
 
-      let htmlContent = '<h3>3:12 K10 Calculator Results</h3><table border="1" style="border-collapse: collapse;">';
+      let htmlContent = '<h3>3:12 Calculator (WIP) Results</h3><table border="1" style="border-collapse: collapse;">';
       inputs.forEach((row, idx) => {
         htmlContent += '<tr>';
         row.forEach(cell => {
@@ -213,7 +213,7 @@ const ThreeTwelveCalculator = () => {
       });
       htmlContent += '</table>';
 
-      let plainText = '3:12 K10 Calculator Results\n';
+      let plainText = '3:12 Calculator (WIP) Results\n';
       inputs.forEach(row => {
         plainText += row.join('\t') + '\n';
       });
@@ -242,7 +242,7 @@ const ThreeTwelveCalculator = () => {
   return (
     <div className="container mx-auto px-6 py-8 max-w-7xl">
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">3:12 K10 Calculator (2026 Rules)</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">3:12 Calculator (WIP) (2026 Rules)</h2>
         <p className="text-sm text-gray-600 mb-6">Based on SOU 2024:36 - New rules effective Jan 1, 2026</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
